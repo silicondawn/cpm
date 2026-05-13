@@ -99,12 +99,31 @@ func printPostInitHints(binDir string) {
 		return
 	}
 	fmt.Println("\n--- Windows setup hints ---")
-	fmt.Printf("1. Make sure %s is on your PATH:\n", binDir)
-	fmt.Printf("   [Environment]::SetEnvironmentVariable('Path', $env:Path + ';' + %q, 'User')\n", binDir)
-	fmt.Println("2. Add to your $PROFILE for auto-switch:")
+
+	step := 1
+	if !isOnPath(binDir) {
+		fmt.Printf("%d. Make sure %s is on your PATH:\n", step, binDir)
+		fmt.Printf("   [Environment]::SetEnvironmentVariable('Path', $env:Path + ';' + %q, 'User')\n", binDir)
+		step++
+	} else {
+		fmt.Printf("Bin dir %s is already on your PATH.\n", binDir)
+	}
+	fmt.Printf("%d. Add to your $PROFILE for auto-switch:\n", step)
 	fmt.Println(`   Invoke-Expression (& cpm hook | Out-String)`)
-	fmt.Println("3. (Rare) For cross-volume symlinks, enable Developer Mode in Windows Settings.")
+	step++
+	fmt.Printf("%d. (Rare) For cross-volume symlinks, enable Developer Mode in Windows Settings.\n", step)
 	fmt.Println("\nRun 'cpm doctor' anytime to verify.")
+}
+
+// isOnPath reports whether dir is one of the entries in the current PATH.
+func isOnPath(dir string) bool {
+	target := strings.ToLower(filepath.Clean(dir))
+	for _, p := range filepath.SplitList(os.Getenv("PATH")) {
+		if strings.ToLower(filepath.Clean(p)) == target {
+			return true
+		}
+	}
+	return false
 }
 
 type profileEntry struct {
