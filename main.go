@@ -90,9 +90,8 @@ func installCmd() *cobra.Command {
 			for _, name := range names {
 				profile := cfg.Profiles[name]
 				profileDir := filepath.Join(profilesBase, name)
-				scriptName := "claude-" + name
 
-				activeNames[scriptName] = true
+				activeNames[name] = true
 
 				fmt.Printf("\nProfile: %s\n", name)
 
@@ -108,9 +107,8 @@ func installCmd() *cobra.Command {
 					return fmt.Errorf("profile %s mcp sync: %w", name, err)
 				}
 
-				wrapper := internal.GenerateWrapper(name, profileDir, profile)
-				scriptPath := filepath.Join(cfg.BinDir, scriptName)
-				if err := internal.InstallWrapper(scriptPath, wrapper); err != nil {
+				files := internal.GenerateWrapper(name, profileDir, profile)
+				if _, err := internal.InstallWrapper(cfg.BinDir, files); err != nil {
 					return fmt.Errorf("profile %s wrapper: %w", name, err)
 				}
 			}
