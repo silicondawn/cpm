@@ -69,3 +69,17 @@ scoops:
     homepage: "https://github.com/silicondawn/cpm"
     description: "Claude Profile Manager — manage multiple Claude Code accounts"
     license: MIT
+
+brews:
+  - repository:
+      owner: silicondawn
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    name: cpm
+    homepage: "https://github.com/silicondawn/cpm"
+    description: "Claude Profile Manager — manage multiple Claude Code accounts"
+    license: "MIT"
+    install: |
+      bin.install "cpm"
+    test: |
+      system "#{bin}/cpm", "version"

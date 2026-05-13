@@ -80,9 +80,15 @@ scoop install cpm
 
 Requires **PowerShell 7+** (`pwsh`). Install via `winget install Microsoft.PowerShell` if missing. Profile-shared directories use junctions, so no admin / Developer Mode is required.
 
-### macOS / Linux (GitHub Releases)
+### macOS / Linux (Homebrew)
 
-Download the latest binary archive from [Releases](https://github.com/silicondawn/cpm/releases/latest):
+```bash
+brew install silicondawn/tap/cpm
+```
+
+### macOS / Linux (GitHub Releases — manual)
+
+If you don't use Homebrew, download the binary archive from [Releases](https://github.com/silicondawn/cpm/releases/latest):
 
 ```bash
 # macOS (Intel / Apple Silicon via Rosetta)
@@ -318,6 +324,9 @@ cpm upgrade
 
 # Via Scoop (Windows)
 scoop update cpm
+
+# Via Homebrew (macOS / Linux)
+brew upgrade cpm
 ```
 
 ## Platform support
