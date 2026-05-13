@@ -120,7 +120,10 @@ func installCmd() *cobra.Command {
 			fmt.Println("\nCleanup:")
 			internal.CleanupStaleScripts(cfg.BinDir, activeNames)
 
-			fmt.Println("\nDone.")
+			fmt.Println("\nDone. To start a profile, run one of:")
+			for _, name := range names {
+				fmt.Printf("  claude-%s\n", name)
+			}
 			return nil
 		},
 	}

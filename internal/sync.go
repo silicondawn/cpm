@@ -8,6 +8,28 @@ import (
 	"strings"
 )
 
+// Fields copied from source ~/.claude.json into each profile's
+// .claude.json. Onboarding flags let the new profile skip the first-run
+// onboarding flow. mcpServers brings the user's MCP setup along.
+// Anything user/account/credential-specific is deliberately excluded
+// (userID, hasAvailableSubscription, claudeCodeFirstTokenDate, etc.) —
+// those should be discovered per profile via OAuth.
+var syncedClaudeJSONFields = []string{
+	"hasCompletedOnboarding",
+	"lastOnboardingVersion",
+	"firstStartTime",
+	"installMethod",
+	"hasIdeOnboardingBeenShown",
+	"mcpServers",
+}
+
+// SyncMCPServers seeds a profile's .claude.json from the source
+// ~/.claude.json: it carries forward onboarding flags (so the new
+// profile doesn't replay the first-run wizard) and mcpServers (so MCP
+// works out of the box). It creates the profile file if missing.
+//
+// The name is preserved for backwards compatibility with main.go even
+// though the function now syncs more than just mcpServers.
 func SyncMCPServers(profileDir string) error {
 	home, _ := os.UserHomeDir()
 	sourcePath := filepath.Join(home, ".claude.json")
@@ -22,45 +44,54 @@ func SyncMCPServers(profileDir string) error {
 		return nil
 	}
 
-	servers, ok := source["mcpServers"]
-	if !ok {
-		return nil
-	}
-
 	profilePath := filepath.Join(profileDir, ".claude.json")
 	profileData, err := os.ReadFile(profilePath)
-	if err != nil {
-		return nil // Profile .claude.json doesn't exist yet (first run)
-	}
-
 	var profile map[string]any
-	if err := json.Unmarshal(profileData, &profile); err != nil {
-		return nil
+	if err != nil {
+		// Profile .claude.json doesn't exist yet — start fresh.
+		profile = map[string]any{}
+	} else if err := json.Unmarshal(profileData, &profile); err != nil {
+		profile = map[string]any{}
 	}
 
-	// Check if already in sync
-	existingJSON, _ := json.Marshal(profile["mcpServers"])
-	newJSON, _ := json.Marshal(servers)
-	if string(existingJSON) == string(newJSON) {
-		return nil
+	changed := false
+	mcpCount := 0
+	for _, key := range syncedClaudeJSONFields {
+		val, present := source[key]
+		if !present {
+			continue
+		}
+		existingJSON, _ := json.Marshal(profile[key])
+		newJSON, _ := json.Marshal(val)
+		if string(existingJSON) == string(newJSON) {
+			continue
+		}
+		profile[key] = val
+		changed = true
+		if key == "mcpServers" {
+			if m, ok := val.(map[string]any); ok {
+				mcpCount = len(m)
+			}
+		}
 	}
 
-	profile["mcpServers"] = servers
+	if !changed {
+		return nil
+	}
 
 	out, err := json.MarshalIndent(profile, "", "  ")
 	if err != nil {
 		return err
 	}
-
 	if err := os.WriteFile(profilePath, append(out, '\n'), 0o644); err != nil {
 		return err
 	}
 
-	count := 0
-	if m, ok := servers.(map[string]any); ok {
-		count = len(m)
+	if mcpCount > 0 {
+		fmt.Printf("  seeded .claude.json (onboarding flags + %d MCP server%s)\n", mcpCount, pluralS(mcpCount))
+	} else {
+		fmt.Printf("  seeded .claude.json (onboarding flags)\n")
 	}
-	fmt.Printf("  synced mcpServers (%d server%s)\n", count, pluralS(count))
 	return nil
 }
 
