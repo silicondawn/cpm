@@ -33,11 +33,12 @@ func RunInit(configPath string) error {
 	}
 
 	// Bin dir
-	fmt.Print("Bin directory [~/.local/bin]: ")
+	defaultBin := defaultBinDir()
+	fmt.Printf("Bin directory [%s]: ", defaultBin)
 	binDir, _ := reader.ReadString('\n')
 	binDir = strings.TrimSpace(binDir)
 	if binDir == "" {
-		binDir = "~/.local/bin"
+		binDir = defaultBin
 	}
 
 	// Profiles

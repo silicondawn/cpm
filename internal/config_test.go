@@ -180,7 +180,7 @@ description = "Test"
 
 	home, _ := os.UserHomeDir()
 	expectedSource := filepath.Join(home, ".claude")
-	expectedBin := filepath.Join(home, ".local", "bin")
+	expectedBin := defaultBinDir()
 
 	if cfg.SourceDir != expectedSource {
 		t.Errorf("source_dir = %q, want %q", cfg.SourceDir, expectedSource)
@@ -191,8 +191,10 @@ description = "Test"
 }
 
 func TestProfilesBaseDir(t *testing.T) {
-	got := ProfilesBaseDir("/home/user/.claude-profiles/config.toml")
-	if got != "/home/user/.claude-profiles" {
-		t.Errorf("ProfilesBaseDir = %q, want /home/user/.claude-profiles", got)
+	input := filepath.Join("/home", "user", ".claude-profiles", "config.toml")
+	want := filepath.Join("/home", "user", ".claude-profiles")
+	got := ProfilesBaseDir(input)
+	if got != want {
+		t.Errorf("ProfilesBaseDir = %q, want %q", got, want)
 	}
 }
