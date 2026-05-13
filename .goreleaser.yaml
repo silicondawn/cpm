@@ -28,16 +28,41 @@ archives:
 checksum:
   name_template: "checksums.txt"
 
+# Conventional Commits — group commits by type in release notes.
+# Matches: feat:, fix:, perf:, refactor:, ci:, build: (with optional scope).
+# Excludes: docs:, test:, chore:, and merge commits.
 changelog:
+  use: github
   sort: asc
+  abbrev: 0
+  groups:
+    - title: "✨ Features"
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: "🐛 Bug fixes"
+      regexp: '^.*?(fix|perf)(\(.+\))??!?:.+$'
+      order: 1
+    - title: "♻️ Refactor"
+      regexp: '^.*?refactor(\(.+\))??!?:.+$'
+      order: 2
+    - title: "🚀 CI / Build / Release"
+      regexp: '^.*?(ci|build|release)(\(.+\))??!?:.+$'
+      order: 3
+    - title: "📝 Other changes"
+      order: 999
   filters:
     exclude:
-      - "^docs:"
-      - "^test:"
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^Merge pull request'
+      - '^Merge branch'
 
-# brews and scoops publishers intentionally omitted from this fork's release.
-# The upstream brew tap (jakubkontra/homebrew-tap) is not writeable from this
-# fork, and the scoop bucket (silicondawn/scoop-cpm) has not been created yet.
-# Distribution is via GitHub Releases binary download only.
-# To re-enable, restore the brews/scoops blocks and provision the tap repos
-# plus HOMEBREW_TAP_TOKEN / SCOOP_TAP_TOKEN secrets.
+scoops:
+  - repository:
+      owner: silicondawn
+      name: scoop-cpm
+      token: "{{ .Env.SCOOP_TAP_TOKEN }}"
+    homepage: "https://github.com/silicondawn/cpm"
+    description: "Claude Profile Manager — manage multiple Claude Code accounts"
+    license: MIT
