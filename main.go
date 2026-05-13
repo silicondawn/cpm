@@ -69,62 +69,7 @@ func installCmd() *cobra.Command {
 		Use:   "install",
 		Short: "Create profile directories and install wrapper scripts",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := internal.LoadConfig(configPath)
-			if err != nil {
-				return err
-			}
-
-			profilesBase := internal.ProfilesBaseDir(configPath)
-
-			if sync && !force {
-				diverged := internal.CheckDivergence(cfg, profilesBase)
-				if len(diverged) > 0 {
-					fmt.Print("\nDiverged profile files detected:\n\n")
-					for _, d := range diverged {
-						fmt.Printf("  %s\n", d.Details)
-					}
-					fmt.Println("\nMerge changes back to source first, or use: --sync --force")
-					return nil
-				}
-			}
-
-			activeNames := make(map[string]bool)
-			names := sortedKeys(cfg.Profiles)
-
-			for _, name := range names {
-				profile := cfg.Profiles[name]
-				profileDir := filepath.Join(profilesBase, name)
-
-				activeNames[name] = true
-
-				fmt.Printf("\nProfile: %s\n", name)
-
-				if err := internal.SetupProfile(name, profileDir, cfg.SourceDir, sync); err != nil {
-					return fmt.Errorf("profile %s: %w", name, err)
-				}
-
-				if err := internal.PatchAttribution(profileDir, profile.Attribution); err != nil {
-					return fmt.Errorf("profile %s attribution: %w", name, err)
-				}
-
-				if err := internal.SyncMCPServers(profileDir); err != nil {
-					return fmt.Errorf("profile %s mcp sync: %w", name, err)
-				}
-
-				files := internal.GenerateWrapper(name, profileDir, profile)
-				if _, err := internal.InstallWrapper(cfg.BinDir, files); err != nil {
-					return fmt.Errorf("profile %s wrapper: %w", name, err)
-				}
-			}
-
-			fmt.Println("\nCleanup:")
-			internal.CleanupStaleScripts(cfg.BinDir, activeNames)
-
-			fmt.Println("\nDone. To start a profile, run one of:")
-			for _, name := range names {
-				fmt.Printf("  claude-%s\n", name)
-			}
-			return nil
+			return internal.RunInstall(configPath, sync, force)
 		},
 	}
 
@@ -313,18 +258,23 @@ func whichCmd() *cobra.Command {
 }
 
 func onboardCmd() *cobra.Command {
-	return &cobra.Command{
+	var skipInstall bool
+	cmd := &cobra.Command{
 		Use:     "onboard",
 		Aliases: []string{"init"},
-		Short:   "Interactive setup wizard (TUI)",
-		Long: "Walk through profile setup with a TUI form.\n" +
+		Short:   "Interactive setup wizard (TUI) + install",
+		Long: "Walk through profile setup with a TUI form, then automatically run\n" +
+			"'cpm install' to create profile directories and wrapper scripts.\n" +
+			"Pass --no-install to write only the config file.\n\n" +
 			"Supports OAuth profiles (browser sign-in on first launch) and\n" +
 			"Anthropic-compatible API profiles (base URL + API key + model:\n" +
 			"DeepSeek, Z.ai, GLM, sub2api, any custom gateway).",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return internal.RunOnboard(configPath)
+			return internal.RunOnboard(configPath, skipInstall)
 		},
 	}
+	cmd.Flags().BoolVar(&skipInstall, "no-install", false, "skip the automatic 'cpm install' step")
+	return cmd
 }
 
 func doctorCmd() *cobra.Command {

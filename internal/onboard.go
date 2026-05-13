@@ -19,9 +19,11 @@ type onboardProfile struct {
 	Model       string
 }
 
-// RunOnboard runs the interactive TUI onboarding flow and writes config.toml.
+// RunOnboard runs the interactive TUI onboarding flow, writes config.toml,
+// and (unless skipInstall is true) immediately runs the install pipeline so
+// the user can launch claude-<name> right away.
 // Replaces the older RunInit stdin prompts.
-func RunOnboard(configPath string) error {
+func RunOnboard(configPath string, skipInstall bool) error {
 	configPath = ExpandPath(configPath)
 
 	if _, err := os.Stat(configPath); err == nil {
@@ -84,9 +86,18 @@ func RunOnboard(configPath string) error {
 	}
 
 	fmt.Printf("\nConfig written to %s\n", configPath)
-	fmt.Println("Next: run 'cpm install' to create profile dirs and wrapper scripts.")
-	printPostInitHints(binDir)
 
+	if skipInstall {
+		fmt.Println("Next: run 'cpm install' to create profile dirs and wrapper scripts.")
+		printPostInitHints(binDir)
+		return nil
+	}
+
+	fmt.Println("Running 'cpm install' to create profile dirs and wrapper scripts...")
+	if err := RunInstall(configPath, false, false); err != nil {
+		return fmt.Errorf("install: %w", err)
+	}
+	printPostInitHints(binDir)
 	return nil
 }
 
