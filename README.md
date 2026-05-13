@@ -71,24 +71,33 @@ Each profile gets an isolated `CLAUDE_CONFIG_DIR` with its own credentials, whil
 
 ## Install
 
-### Windows (Scoop)
+One-liners on every platform:
+
+```bash
+# macOS / Linux
+brew install silicondawn/tap/cpm
+```
 
 ```powershell
+# Windows (PowerShell 7+)
 scoop bucket add cpm https://github.com/silicondawn/cpm
 scoop install cpm
 ```
 
-Requires **PowerShell 7+** (`pwsh`). Install via `winget install Microsoft.PowerShell` if missing. Profile-shared directories use junctions, so no admin / Developer Mode is required.
-
-### macOS / Linux (Homebrew)
+That's it. After install:
 
 ```bash
-brew install silicondawn/tap/cpm
+cpm onboard       # interactive TUI — pick OAuth or API-key mode per profile
+cpm install       # write profile dirs + claude-<name> wrappers
+claude-<name>     # run Claude Code with that profile's env
 ```
 
-### macOS / Linux (GitHub Releases — manual)
+<details>
+<summary>Other install methods</summary>
 
-If you don't use Homebrew, download the binary archive from [Releases](https://github.com/silicondawn/cpm/releases/latest):
+### GitHub Releases (manual)
+
+Download the binary archive from [Releases](https://github.com/silicondawn/cpm/releases/latest) and unpack to a directory on your PATH:
 
 ```bash
 # macOS (Intel / Apple Silicon via Rosetta)
@@ -102,6 +111,8 @@ curl -L https://github.com/silicondawn/cpm/releases/latest/download/cpm_linux_am
 chmod +x ~/.local/bin/cpm
 ```
 
+For Windows manual install, grab `cpm_windows_amd64.zip` from Releases, extract `cpm.exe`, and drop it somewhere on PATH (e.g. `$env:LOCALAPPDATA\cpm\bin`).
+
 ### From source
 
 ```bash
@@ -110,11 +121,19 @@ cd cpm
 go install .
 ```
 
+</details>
+
+### Windows notes
+
+- Requires **PowerShell 7+** (`pwsh`). Install via `winget install Microsoft.PowerShell` if missing. Windows PowerShell 5.1 is not supported.
+- Profile-shared directories use junctions, so no Administrator / Developer Mode required.
+- `cpm.exe` self-upgrade uses a rename-old / rename-new trick — no admin needed.
+
 ## Quick start
 
 ```bash
-# 1. Create config interactively
-cpm init
+# 1. Create config interactively (TUI form)
+cpm onboard
 
 # 2. Install profiles + wrapper scripts
 cpm install
@@ -180,7 +199,7 @@ The `.claude-profile` file is automatically added to `.gitignore`.
 | `cpm hook` | Print shell hook for auto-switch |
 | `cpm direnv <profile>` | Print `.envrc` snippet |
 | `cpm clone <src> <dst>` | Clone profile (without credentials) |
-| `cpm init` | Interactive config wizard |
+| `cpm onboard` | Interactive TUI setup wizard (alias: `cpm init`) |
 | `cpm version` | Show version + check for updates |
 | `cpm upgrade` | Self-update from GitHub Releases |
 | `cpm cloud init [--remote <url>]` | Initialize cloud sync repo |
