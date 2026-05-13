@@ -24,6 +24,10 @@ archives:
     # goreleaser auto-appends .exe on windows for format: binary, so we
     # do NOT add it ourselves (would produce cpm_windows_amd64.exe.exe)
     name_template: "cpm_{{ .Os }}_{{ .Arch }}"
+    # Windows needs a zip archive (scoop publisher requires it).
+    format_overrides:
+      - goos: windows
+        format: zip
 
 checksum:
   name_template: "checksums.txt"
