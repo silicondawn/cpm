@@ -33,25 +33,9 @@ changelog:
       - "^docs:"
       - "^test:"
 
-brews:
-  - repository:
-      owner: jakubkontra
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    name: cpm
-    homepage: "https://github.com/jakubkontra/claude-profile-manager"
-    description: "Claude Profile Manager — manage multiple Claude Code accounts"
-    license: "MIT"
-    install: |
-      bin.install "cpm"
-    test: |
-      system "#{bin}/cpm", "version"
-
-scoops:
-  - repository:
-      owner: silicondawn
-      name: scoop-cpm
-      token: "{{ .Env.SCOOP_TAP_TOKEN }}"
-    homepage: "https://github.com/silicondawn/cpm"
-    description: "Claude Profile Manager — manage multiple Claude Code accounts"
-    license: MIT
+# brews and scoops publishers intentionally omitted from this fork's release.
+# The upstream brew tap (jakubkontra/homebrew-tap) is not writeable from this
+# fork, and the scoop bucket (silicondawn/scoop-cpm) has not been created yet.
+# Distribution is via GitHub Releases binary download only.
+# To re-enable, restore the brews/scoops blocks and provision the tap repos
+# plus HOMEBREW_TAP_TOKEN / SCOOP_TAP_TOKEN secrets.
