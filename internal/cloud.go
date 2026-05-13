@@ -408,7 +408,11 @@ func GatherSyncFiles(cfg *Config, configPath string) (map[string]string, error) 
 				return nil
 			}
 			rel, _ := filepath.Rel(cfg.SourceDir, path)
-			files[rel] = path
+			// Normalize to forward slashes so cloud sync produces identical
+			// map keys across Windows and Unix (otherwise the git repo on the
+			// other side would see commands\test.md vs commands/test.md as
+			// separate paths).
+			files[filepath.ToSlash(rel)] = path
 			return nil
 		})
 	}
