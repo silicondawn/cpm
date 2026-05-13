@@ -76,17 +76,28 @@ func CleanupStaleScripts(binDir string, activeProfileNames map[string]bool) {
 		if entry.IsDir() {
 			continue
 		}
-		if activeFiles[entry.Name()] {
+		name := entry.Name()
+		// Only consider files named like a profile wrapper. Skips cpm.exe
+		// itself (the Go binary embeds the marker constant in .rodata) and
+		// any unrelated scripts users may have placed in bin_dir.
+		if !strings.HasPrefix(name, "claude-") {
 			continue
 		}
-		path := filepath.Join(binDir, entry.Name())
+		if activeFiles[name] {
+			continue
+		}
+		path := filepath.Join(binDir, name)
 		content, err := os.ReadFile(path)
 		if err != nil {
 			continue
 		}
-		if strings.Contains(string(content), marker) {
-			os.Remove(path)
-			fmt.Printf("  removed stale script %s\n", path)
+		if !strings.Contains(string(content), marker) {
+			continue
 		}
+		if err := os.Remove(path); err != nil {
+			fmt.Printf("  could not remove stale script %s: %v\n", path, err)
+			continue
+		}
+		fmt.Printf("  removed stale script %s\n", path)
 	}
 }

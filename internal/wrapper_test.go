@@ -102,6 +102,13 @@ func TestCleanupStaleScripts(t *testing.T) {
 	other := filepath.Join(dir, "other-script")
 	os.WriteFile(other, []byte("just some script\n"), 0o644)
 
+	// A binary-like file whose contents happen to contain the marker
+	// (simulating cpm.exe itself, which embeds the marker constant in
+	// .rodata). Must not be touched because its name does not start
+	// with "claude-".
+	binaryLike := filepath.Join(dir, "cpm.exe")
+	os.WriteFile(binaryLike, []byte("MZ\x00"+marker+"\x00more"), 0o644)
+
 	activeProfiles := map[string]bool{"keep": true}
 	CleanupStaleScripts(dir, activeProfiles)
 
@@ -117,5 +124,8 @@ func TestCleanupStaleScripts(t *testing.T) {
 	}
 	if _, err := os.Stat(other); err != nil {
 		t.Error("non-cpm script should be kept")
+	}
+	if _, err := os.Stat(binaryLike); err != nil {
+		t.Error("binary-like file with embedded marker should be kept (name does not start with claude-)")
 	}
 }
