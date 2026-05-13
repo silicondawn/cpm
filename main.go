@@ -25,6 +25,11 @@ const banner = `
 `
 
 func main() {
+	// Best-effort cleanup of leftover .old binary from a previous Windows upgrade.
+	if exe, err := os.Executable(); err == nil {
+		internal.CleanupOldBinary(exe)
+	}
+
 	root := &cobra.Command{
 		Use:   "cpm",
 		Short: "Claude Profile Manager — manage multiple Claude Code accounts",
