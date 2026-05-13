@@ -1,12 +1,12 @@
 {
-    "version": "0.5.1",
+    "version": "0.5.2",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/silicondawn/cpm/releases/download/v0.5.1/cpm_windows_amd64.zip",
+            "url": "https://github.com/silicondawn/cpm/releases/download/v0.5.2/cpm_windows_amd64.zip",
             "bin": [
                 "cpm.exe"
             ],
-            "hash": "1cf458f113c47fb15d04eb593457e1356599be1e6a2d826e18869b8337704c5d"
+            "hash": "badcfd8f34658967a4c4600164d6b6e5c871daa5749ed8be9e00c4bc03677642"
         }
     },
     "homepage": "https://github.com/silicondawn/cpm",
