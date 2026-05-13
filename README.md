@@ -99,9 +99,9 @@ go install github.com/jakubkontra/cpm@latest
 scoop bucket add cpm https://github.com/silicondawn/scoop-cpm
 scoop install cpm
 
-# Or download cpm_windows_amd64.exe from Releases:
+# Or download cpm_windows_amd64.zip from Releases, extract, and drop
+# cpm.exe somewhere on PATH (e.g. $env:LOCALAPPDATA\cpm\bin):
 #   https://github.com/silicondawn/cpm/releases/latest
-# and drop it somewhere on PATH (e.g. $env:LOCALAPPDATA\cpm\bin).
 
 cpm init             # interactive setup
 cpm install          # creates claude-<name>.cmd + claude-<name>.ps1 wrappers
