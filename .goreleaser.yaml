@@ -21,7 +21,9 @@ builds:
 
 archives:
   - format: binary
-    name_template: "cpm_{{ .Os }}_{{ .Arch }}{{ if eq .Os \"windows\" }}.exe{{ end }}"
+    # goreleaser auto-appends .exe on windows for format: binary, so we
+    # do NOT add it ourselves (would produce cpm_windows_amd64.exe.exe)
+    name_template: "cpm_{{ .Os }}_{{ .Arch }}"
 
 checksum:
   name_template: "checksums.txt"
