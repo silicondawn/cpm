@@ -96,7 +96,7 @@ go install github.com/jakubkontra/cpm@latest
 ### Windows (PowerShell 7+)
 
 ```powershell
-scoop bucket add cpm https://github.com/silicondawn/scoop-cpm
+scoop bucket add cpm https://github.com/silicondawn/cpm
 scoop install cpm
 
 # Or download cpm_windows_amd64.zip from Releases, extract, and drop

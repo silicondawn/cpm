@@ -62,8 +62,10 @@ changelog:
 scoops:
   - repository:
       owner: silicondawn
-      name: scoop-cpm
-      token: "{{ .Env.SCOOP_TAP_TOKEN }}"
+      name: cpm
+      # token omitted → goreleaser uses the default GITHUB_TOKEN, which
+      # already has contents:write on this same repo (no PAT needed).
+    directory: bucket
     homepage: "https://github.com/silicondawn/cpm"
     description: "Claude Profile Manager — manage multiple Claude Code accounts"
     license: MIT
