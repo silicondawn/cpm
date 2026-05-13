@@ -11,12 +11,14 @@ import (
 )
 
 type onboardProfile struct {
-	Name        string
-	Description string
-	AuthMode    string // "oauth" or "api"
-	BaseURL     string
-	APIKey      string
-	Model       string
+	Name          string
+	Description   string
+	AuthMode      string // "oauth" or "api"
+	BaseURL       string
+	APIKey        string
+	Model         string
+	TavilyEnabled bool
+	TavilyAPIKey  string
 }
 
 // RunOnboard runs the interactive TUI onboarding flow, writes config.toml,
@@ -162,6 +164,24 @@ func promptProfileForm() (onboardProfile, error) {
 				).
 				Value(&p.Model),
 		).WithHideFunc(func() bool { return p.AuthMode != "oauth" }),
+		// Tavily WebSearch simulation toggle (API-mode only — OAuth profiles
+		// already have native WebSearch).
+		huh.NewGroup(
+			huh.NewConfirm().
+				Title("Enable Tavily-backed WebSearch simulation?").
+				Description("API-mode profiles can't use Claude's native WebSearch/WebFetch.\nTavily (tavily.com) provides a substitute via plain HTTP — cpm will\ninject a self-contained usage hint into this profile's CLAUDE.md so\nthe agent knows to fall back to Tavily when web search is needed.").
+				Affirmative("Yes, enable").
+				Negative("No, skip").
+				Value(&p.TavilyEnabled),
+		).WithHideFunc(func() bool { return p.AuthMode != "api" }),
+		huh.NewGroup(
+			huh.NewInput().
+				Title("TAVILY_API_KEY").
+				Description("Get one at https://app.tavily.com (free tier available).\nStored in config.toml in plain text.").
+				EchoMode(huh.EchoModePassword).
+				Value(&p.TavilyAPIKey).
+				Validate(validateNonEmpty("Tavily API key")),
+		).WithHideFunc(func() bool { return p.AuthMode != "api" || !p.TavilyEnabled }),
 	)
 
 	if err := form.Run(); err != nil {
@@ -171,6 +191,7 @@ func promptProfileForm() (onboardProfile, error) {
 	p.Description = strings.TrimSpace(p.Description)
 	p.BaseURL = strings.TrimSpace(p.BaseURL)
 	p.Model = strings.TrimSpace(p.Model)
+	p.TavilyAPIKey = strings.TrimSpace(p.TavilyAPIKey)
 	return p, nil
 }
 
@@ -187,10 +208,16 @@ func renderConfigTOML(sourceDir, binDir string, profiles []onboardProfile) strin
 		if p.Model != "" {
 			b.WriteString(fmt.Sprintf("model = %q\n", p.Model))
 		}
-		if p.AuthMode == "api" {
+		needEnv := p.AuthMode == "api" || (p.TavilyEnabled && p.TavilyAPIKey != "")
+		if needEnv {
 			b.WriteString(fmt.Sprintf("\n[profiles.%s.env]\n", p.Name))
+		}
+		if p.AuthMode == "api" {
 			b.WriteString(fmt.Sprintf("ANTHROPIC_BASE_URL = %q\n", p.BaseURL))
 			b.WriteString(fmt.Sprintf("ANTHROPIC_API_KEY = %q\n", p.APIKey))
+		}
+		if p.TavilyEnabled && p.TavilyAPIKey != "" {
+			b.WriteString(fmt.Sprintf("TAVILY_API_KEY = %q\n", p.TavilyAPIKey))
 		}
 	}
 	return b.String()

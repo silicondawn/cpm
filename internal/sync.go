@@ -258,10 +258,18 @@ func CheckDivergence(cfg *Config, profilesBase string) []DivergedFile {
 				expectedData = applyAttributionToSource(srcData, profile.Attribution)
 			}
 
-			if string(expectedData) != string(dstData) {
+			// CLAUDE.md may carry the cpm-managed Tavily block — strip it
+			// from the profile copy so we compare actual user-authored
+			// content against source.
+			dstCompare := dstData
+			if filename == "CLAUDE.md" {
+				dstCompare = []byte(stripTavilyBlock(string(dstData)))
+			}
+
+			if string(expectedData) != string(dstCompare) {
 				// Check if profile has additions not in source
 				srcLines := strings.Split(string(expectedData), "\n")
-				dstLines := strings.Split(string(dstData), "\n")
+				dstLines := strings.Split(string(dstCompare), "\n")
 
 				hasAdditions := false
 				for _, dl := range dstLines {

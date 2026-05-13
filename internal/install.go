@@ -60,6 +60,9 @@ func RunInstall(configPath string, sync, force bool) error {
 		if err := SyncMCPServers(profileDir); err != nil {
 			return fmt.Errorf("profile %s mcp sync: %w", name, err)
 		}
+		if err := InjectTavilyHint(profileDir, profile); err != nil {
+			return fmt.Errorf("profile %s tavily hint: %w", name, err)
+		}
 		files := GenerateWrapper(name, profileDir, profile)
 		if _, err := InstallWrapper(cfg.BinDir, files); err != nil {
 			return fmt.Errorf("profile %s wrapper: %w", name, err)
