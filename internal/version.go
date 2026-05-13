@@ -17,8 +17,11 @@ var (
 	Commit  = "unknown"
 )
 
-const repoOwner = "jakubkontra"
-const repoName = "claude-profile-manager"
+// This fork's own release source. We deliberately do NOT track
+// jakubkontra/claude-profile-manager here — that would falsely flag our
+// v0.3.x builds as out-of-date against upstream's v0.2.0.
+const repoOwner = "silicondawn"
+const repoName = "cpm"
 
 type githubRelease struct {
 	TagName string        `json:"tag_name"`
