@@ -7,9 +7,13 @@ builds:
     goos:
       - darwin
       - linux
+      - windows
     goarch:
       - amd64
       - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
     ldflags:
       - -s -w
       - -X github.com/jakubkontra/cpm/internal.Version={{.Version}}
@@ -17,7 +21,7 @@ builds:
 
 archives:
   - format: binary
-    name_template: "cpm_{{ .Os }}_{{ .Arch }}"
+    name_template: "cpm_{{ .Os }}_{{ .Arch }}{{ if eq .Os \"windows\" }}.exe{{ end }}"
 
 checksum:
   name_template: "checksums.txt"
@@ -42,3 +46,12 @@ brews:
       bin.install "cpm"
     test: |
       system "#{bin}/cpm", "version"
+
+scoops:
+  - repository:
+      owner: silicondawn
+      name: scoop-cpm
+      token: "{{ .Env.SCOOP_TAP_TOKEN }}"
+    homepage: "https://github.com/silicondawn/cpm"
+    description: "Claude Profile Manager — manage multiple Claude Code accounts"
+    license: MIT
