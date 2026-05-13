@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"syscall"
 
 	"github.com/jakubkontra/cpm/internal"
 	"github.com/spf13/cobra"
@@ -416,7 +415,7 @@ func runCmd() *cobra.Command {
 				return fmt.Errorf("claude not found on PATH")
 			}
 
-			return syscall.Exec(claudePath, fullArgs, filtered)
+			return internal.ExecClaude(claudePath, fullArgs, filtered)
 		},
 	}
 }
