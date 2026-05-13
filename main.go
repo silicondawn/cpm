@@ -33,7 +33,7 @@ func main() {
 	root := &cobra.Command{
 		Use:   "cpm",
 		Short: "Claude Profile Manager — manage multiple Claude Code accounts",
-		Long:  banner + "\n  Manage multiple Claude Code accounts with isolated profiles.\n  https://github.com/jakubkontra/claude-profile-manager",
+		Long:  banner + "\n  Manage multiple Claude Code accounts with isolated profiles.\n  https://github.com/silicondawn/cpm",
 	}
 
 	root.PersistentFlags().StringVar(&configPath, "config", internal.DefaultConfigPath(), "path to config file")

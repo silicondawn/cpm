@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/jakubkontra/claude-profile-manager/raw/main/assets/logo.svg" width="140" alt="cpm logo" />
+  <img src="https://github.com/silicondawn/cpm/raw/main/assets/logo.svg" width="140" alt="cpm logo" />
 </p>
 
 <h1 align="center">cpm</h1>
@@ -10,13 +10,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/jakubkontra/claude-profile-manager/actions/workflows/test.yml"><img src="https://github.com/jakubkontra/claude-profile-manager/actions/workflows/test.yml/badge.svg" alt="Tests" /></a>
-  <a href="https://github.com/jakubkontra/claude-profile-manager/releases/latest"><img src="https://img.shields.io/github/v/release/jakubkontra/claude-profile-manager?label=version" alt="Latest Release" /></a>
-  <a href="https://github.com/jakubkontra/claude-profile-manager/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
+  <a href="https://github.com/silicondawn/cpm/actions/workflows/test.yml"><img src="https://github.com/silicondawn/cpm/actions/workflows/test.yml/badge.svg" alt="Tests" /></a>
+  <a href="https://github.com/silicondawn/cpm/releases/latest"><img src="https://img.shields.io/github/v/release/silicondawn/cpm?label=version" alt="Latest Release" /></a>
+  <a href="https://github.com/silicondawn/cpm/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
 </p>
 
 <p align="center">
-  <img src="https://github.com/jakubkontra/claude-profile-manager/raw/main/assets/demo.svg" width="700" alt="cpm demo" />
+  <img src="https://github.com/silicondawn/cpm/raw/main/assets/demo.svg" width="700" alt="cpm demo" />
 </p>
 
 ---
@@ -40,8 +40,8 @@ flowchart LR
     A["config.toml"] --> B["cpm install"]
     B --> C["~/.claude-profiles/personal/"]
     B --> D["~/.claude-profiles/work/"]
-    B --> E["~/.local/bin/claude-personal"]
-    B --> F["~/.local/bin/claude-work"]
+    B --> E["bin_dir/claude-personal"]
+    B --> F["bin_dir/claude-work"]
     C --> G["claude-personal"]
     D --> H["claude-work"]
 
@@ -51,7 +51,7 @@ flowchart LR
     style H fill:#059669,color:#fff
 ```
 
-Each profile gets an isolated `CLAUDE_CONFIG_DIR` with its own credentials, while sharing commands, skills, plugins, and projects via symlinks:
+Each profile gets an isolated `CLAUDE_CONFIG_DIR` with its own credentials, while sharing commands, skills, plugins, and projects via symlinks (Unix) or junctions (Windows):
 
 ```
 ~/.claude-profiles/
@@ -59,62 +59,50 @@ Each profile gets an isolated `CLAUDE_CONFIG_DIR` with its own credentials, whil
 ├── personal/
 │   ├── settings.json        # Copied (mutable)
 │   ├── CLAUDE.md            # Copied (mutable)
-│   ├── commands/ -> ~/.claude/commands/   # Symlinked
-│   ├── skills/   -> ~/.claude/skills/     # Symlinked
-│   ├── plugins/  -> ~/.claude/plugins/    # Symlinked
-│   ├── projects/ -> ~/.claude/projects/   # Symlinked
+│   ├── commands/ -> ~/.claude/commands/   # Linked
+│   ├── skills/   -> ~/.claude/skills/     # Linked
+│   ├── plugins/  -> ~/.claude/plugins/    # Linked
+│   ├── projects/ -> ~/.claude/projects/   # Linked
 │   ├── .credentials.json    # Per-profile (created by Claude)
-│   └── .claude.json         # Per-profile (created by Claude)
+│   └── .claude.json         # Per-profile (seeded by cpm)
 └── work/
     └── ...
 ```
 
 ## Install
 
-### Homebrew (macOS/Linux)
+### Windows (Scoop)
 
-```bash
-brew install jakubkontra/tap/cpm
+```powershell
+scoop bucket add cpm https://github.com/silicondawn/cpm
+scoop install cpm
 ```
 
-### GitHub Releases
+Requires **PowerShell 7+** (`pwsh`). Install via `winget install Microsoft.PowerShell` if missing. Profile-shared directories use junctions, so no admin / Developer Mode is required.
 
-Download the latest binary from [Releases](https://github.com/jakubkontra/claude-profile-manager/releases/latest):
+### macOS / Linux (GitHub Releases)
+
+Download the latest binary archive from [Releases](https://github.com/silicondawn/cpm/releases/latest):
 
 ```bash
-# macOS (Apple Silicon)
-curl -L https://github.com/jakubkontra/claude-profile-manager/releases/latest/download/cpm_darwin_arm64 -o ~/.local/bin/cpm
+# macOS (Intel / Apple Silicon via Rosetta)
+curl -L https://github.com/silicondawn/cpm/releases/latest/download/cpm_darwin_amd64.tar.gz \
+  | tar -xz -C ~/.local/bin/ cpm
+
+# Linux x86_64
+curl -L https://github.com/silicondawn/cpm/releases/latest/download/cpm_linux_amd64.tar.gz \
+  | tar -xz -C ~/.local/bin/ cpm
+
 chmod +x ~/.local/bin/cpm
 ```
 
 ### From source
 
 ```bash
-go install github.com/jakubkontra/cpm@latest
+git clone https://github.com/silicondawn/cpm.git
+cd cpm
+go install .
 ```
-
-### Windows (PowerShell 7+)
-
-```powershell
-scoop bucket add cpm https://github.com/silicondawn/cpm
-scoop install cpm
-
-# Or download cpm_windows_amd64.zip from Releases, extract, and drop
-# cpm.exe somewhere on PATH (e.g. $env:LOCALAPPDATA\cpm\bin):
-#   https://github.com/silicondawn/cpm/releases/latest
-
-cpm init             # interactive setup
-cpm install          # creates claude-<name>.cmd + claude-<name>.ps1 wrappers
-claude-personal      # works just like on macOS/Linux
-
-# Auto-switch hook — add to $PROFILE:
-Invoke-Expression (& cpm hook | Out-String)
-```
-
-Notes:
-- Requires **PowerShell 7+** (`pwsh`). Windows PowerShell 5.1 is not supported. Install via `winget install Microsoft.PowerShell`.
-- Profile-shared directories use junctions (no admin needed). For the rare cross-volume case, enable **Developer Mode** in Windows Settings.
-- `cpm.exe` self-upgrade uses a rename-old / rename-new trick — no admin needed.
 
 ## Quick start
 
@@ -122,29 +110,21 @@ Notes:
 # 1. Create config interactively
 cpm init
 
-# 2. Or manually create ~/.claude-profiles/config.toml
-cat > ~/.claude-profiles/config.toml << 'EOF'
-source_dir = "~/.claude"
-bin_dir = "~/.local/bin"
-
-[profiles.personal]
-description = "Personal account"
-
-[profiles.work]
-description = "Company account"
-model = "sonnet"
-add_dirs = ["~/Work/company"]
-EOF
-
-# 3. Install profiles + wrapper scripts
+# 2. Install profiles + wrapper scripts
 cpm install
 
-# 4. Authenticate each profile (first time only)
-claude-personal    # Opens browser for OAuth
-claude-work        # Opens browser for OAuth
+# 3. Authenticate each profile (first time only — OAuth in browser)
+claude-personal
+claude-work
 ```
 
-## Per-project profiles (like .nvmrc)
+**Windows note**: after `cpm install`, run any `claude-<name>` from a new PowerShell session. The wrapper handles env setup automatically. Add the auto-switch hook to `$PROFILE`:
+
+```powershell
+Invoke-Expression (& cpm hook | Out-String)
+```
+
+## Per-project profiles (like `.nvmrc`)
 
 ```mermaid
 flowchart LR
@@ -164,15 +144,13 @@ Link a profile to any project directory:
 cd ~/Work/company-project
 cpm link work
 
-# Auto-switch on cd (add to .zshrc once)
+# Auto-switch on cd (add to .zshrc / .bashrc once)
 eval "$(cpm hook)"
 
-# Now every time you cd into this project:
-cd ~/Work/company-project
-# [cpm] using profile: work
+# Or on Windows ($PROFILE):
+Invoke-Expression (& cpm hook | Out-String)
 
-cd ~/personal-project
-# [cpm] using profile: personal
+# Now every time you cd into this project, the profile switches.
 ```
 
 The `.claude-profile` file is automatically added to `.gitignore`.
@@ -189,7 +167,7 @@ The `.claude-profile` file is automatically added to `.gitignore`.
 | `cpm status` | Check sync divergence |
 | `cpm doctor` | Diagnose issues (broken symlinks, expired creds, ...) |
 | `cpm credentials` | Show OAuth token status for all profiles |
-| `cpm use <profile>` | Switch shell: `eval "$(cpm use work)"` |
+| `cpm use <profile>` | Switch shell — Unix: `eval "$(cpm use work)"`; PowerShell: `Invoke-Expression (& cpm use work \| Out-String)` |
 | `cpm run <profile> [args]` | One-shot: `cpm run work -p "explain this"` |
 | `cpm link <profile>` | Create `.claude-profile` in current dir |
 | `cpm unlink` | Remove `.claude-profile` |
@@ -233,7 +211,7 @@ cpm cloud pull   # on the other machine
 | `plugins/installed_plugins.json` | Telemetry |
 | `plugins/known_marketplaces.json` | |
 | `.skill-lock.json` | |
-| CPM `config.toml` | |
+| cpm `config.toml` | |
 
 ### Exclude files from sync
 
@@ -249,7 +227,11 @@ exclude = ["CLAUDE.md", "commands/"]
 
 ```toml
 source_dir = "~/.claude"
-bin_dir = "~/.local/bin"
+# bin_dir default per platform:
+#   Unix:    ~/.local/bin
+#   Windows: ~/scoop/shims  (if cpm was installed via scoop)
+#            %LOCALAPPDATA%\cpm\bin (otherwise)
+# bin_dir = "/custom/path"
 
 [profiles.personal]
 description = "Personal Anthropic account"
@@ -278,7 +260,7 @@ CLOUD_ML_REGION = "europe-west1"
 | Field | Default | Description |
 |-------|---------|-------------|
 | `source_dir` | `~/.claude` | Source for shared config |
-| `bin_dir` | `~/.local/bin` | Where wrapper scripts are installed |
+| `bin_dir` | platform-aware (see above) | Where wrapper scripts are installed |
 | `profiles.<name>.description` | | Human-readable description |
 | `profiles.<name>.model` | | Default model (`sonnet`, `opus`) |
 | `profiles.<name>.add_dirs` | | Extra dirs passed via `--add-dir` |
@@ -294,8 +276,9 @@ CLOUD_ML_REGION = "europe-west1"
 | Type | Files | Behavior |
 |------|-------|----------|
 | **Copied** | `settings.json`, `settings.local.json`, `CLAUDE.md` | Copied on first install. `--sync` to refresh. |
-| **Symlinked** | `commands/`, `skills/`, `agents/`, `plugins/`, `projects/` | Shared across all profiles |
-| **Per-profile** | `.credentials.json`, `.claude.json`, `teams/` | Created by Claude on first use |
+| **Linked** | `commands/`, `skills/`, `agents/`, `plugins/`, `projects/` | Shared across all profiles via symlink (Unix) or junction (Windows) |
+| **Seeded** | `.claude.json` | Onboarding flags + MCP servers copied from source so the profile skips first-run wizard |
+| **Per-profile** | `.credentials.json`, `teams/` | Created by Claude on first OAuth |
 
 ## Shell integration
 
@@ -315,29 +298,34 @@ format = "[$output]($style) "
 style = "purple"
 ```
 
+PowerShell prompt — see `cpm hook` output, which preserves your existing `prompt` function.
+
 ### direnv
 
 ```bash
-# Generate .envrc for a project
+# Generate .envrc for a project (Unix)
 cpm direnv work >> ~/Work/company-project/.envrc
 direnv allow ~/Work/company-project
 ```
 
+On Windows `cpm direnv` emits a `$env:` snippet you can `Invoke-Expression` from your `.envrc.ps1` or PowerShell-aware loader.
+
 ## Upgrading
 
 ```bash
-# Self-update
+# Self-update (downloads matching release binary)
 cpm upgrade
 
-# Or via Homebrew
-brew upgrade cpm
+# Via Scoop (Windows)
+scoop update cpm
 ```
 
-## Requirements
+## Platform support
 
-- macOS, Linux, or Windows 10/11 (PowerShell 7+ for the Windows version — Windows PowerShell 5.1 not supported)
+- macOS, Linux, or Windows 10/11 (PowerShell 7+ for the Windows version — Windows PowerShell 5.1 is not supported)
 - Claude Code installed and on PATH
-- `~/.local/bin` (Unix) or `%LOCALAPPDATA%\cpm\bin` (Windows) on PATH (or configure `bin_dir`)
+- `bin_dir` on PATH (the default already is on Windows when installed via scoop; on Unix you may need to add `~/.local/bin`)
+- Releases ship `amd64` only. Apple Silicon users can run the `darwin_amd64` binary under Rosetta.
 
 ## License
 
