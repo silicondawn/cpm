@@ -16,6 +16,7 @@ type onboardProfile struct {
 	AuthMode      string // "oauth" or "api"
 	BaseURL       string
 	APIKey        string
+	AuthKeyVar    string // "api_key" | "auth_token" | "both" — which env var(s) the gateway expects (api mode only)
 	Model         string
 	TavilyEnabled bool
 	TavilyAPIKey  string
@@ -104,7 +105,7 @@ func RunOnboard(configPath string, skipInstall bool) error {
 }
 
 func promptProfileForm() (onboardProfile, error) {
-	p := onboardProfile{AuthMode: "oauth"}
+	p := onboardProfile{AuthMode: "oauth", AuthKeyVar: "auth_token"}
 
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -127,7 +128,7 @@ func promptProfileForm() (onboardProfile, error) {
 				Description("How does this profile authenticate to Claude?").
 				Options(
 					huh.NewOption("OAuth (Anthropic subscription, browser sign-in on first launch)", "oauth"),
-					huh.NewOption("Anthropic-compatible API (base URL + API key — DeepSeek, Z.ai, GLM, sub2api, custom gateway)", "api"),
+					huh.NewOption("Anthropic-compatible API (base URL + API key — DeepSeek, Z.ai, GLM, sub2api, Manifest, custom gateway)", "api"),
 				).
 				Value(&p.AuthMode),
 		),
@@ -135,19 +136,28 @@ func promptProfileForm() (onboardProfile, error) {
 		huh.NewGroup(
 			huh.NewInput().
 				Title("ANTHROPIC_BASE_URL").
-				Description("Examples:\n  https://api.deepseek.com/anthropic\n  https://api.z.ai/coding/paas/v4/anthropic\n  https://ai.proem.dev").
+				Description("Examples:\n  https://api.deepseek.com/anthropic\n  https://api.z.ai/coding/paas/v4/anthropic\n  https://manifest.proem.dev").
 				Placeholder("https://...").
 				Value(&p.BaseURL).
 				Validate(validateBaseURL),
+			huh.NewSelect[string]().
+				Title("Which auth env var does this gateway expect?").
+				Description("AUTH_TOKEN  → 'Authorization: Bearer <value>'  (most third-party gateways)\nAPI_KEY     → 'x-api-key: <value>'              (direct api.anthropic.com)\nClaude Code prefers AUTH_TOKEN when both are set.").
+				Options(
+					huh.NewOption("ANTHROPIC_AUTH_TOKEN — DeepSeek, Z.ai, GLM, Manifest, sub2api, most gateways", "auth_token"),
+					huh.NewOption("ANTHROPIC_API_KEY    — direct api.anthropic.com (sk-ant-… key)", "api_key"),
+					huh.NewOption("Both                  — defensive: write to both vars", "both"),
+				).
+				Value(&p.AuthKeyVar),
 			huh.NewInput().
-				Title("ANTHROPIC_API_KEY").
+				Title("API key / auth token").
 				Description("Stored in config.toml in plain text. Press enter when done.").
 				EchoMode(huh.EchoModePassword).
 				Value(&p.APIKey).
 				Validate(validateNonEmpty("API key")),
 			huh.NewInput().
 				Title("Default model").
-				Description("Provider-specific name. Examples:\n  deepseek-v4-pro, glm-4.6, claude-sonnet-4-5").
+				Description("Provider-specific name. Examples:\n  deepseek-v4-pro, glm-4.6, claude-sonnet-4-5, auto").
 				Value(&p.Model).
 				Validate(validateNonEmpty("model")),
 		).WithHideFunc(func() bool { return p.AuthMode != "api" }),
@@ -224,7 +234,15 @@ func renderProfileTOMLBlock(p onboardProfile) string {
 	}
 	if p.AuthMode == "api" {
 		b.WriteString(fmt.Sprintf("ANTHROPIC_BASE_URL = %q\n", p.BaseURL))
-		b.WriteString(fmt.Sprintf("ANTHROPIC_API_KEY = %q\n", p.APIKey))
+		switch p.AuthKeyVar {
+		case "auth_token":
+			b.WriteString(fmt.Sprintf("ANTHROPIC_AUTH_TOKEN = %q\n", p.APIKey))
+		case "both":
+			b.WriteString(fmt.Sprintf("ANTHROPIC_API_KEY = %q\n", p.APIKey))
+			b.WriteString(fmt.Sprintf("ANTHROPIC_AUTH_TOKEN = %q\n", p.APIKey))
+		default: // "api_key" or unset (legacy)
+			b.WriteString(fmt.Sprintf("ANTHROPIC_API_KEY = %q\n", p.APIKey))
+		}
 	}
 	if p.TavilyEnabled && p.TavilyAPIKey != "" {
 		b.WriteString(fmt.Sprintf("TAVILY_API_KEY = %q\n", p.TavilyAPIKey))

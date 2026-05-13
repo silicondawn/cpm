@@ -149,13 +149,14 @@ func PatchAttribution(profileDir string, attr *Attribution) error {
 var apiModeDeniedTools = []string{"WebSearch", "WebFetch"}
 
 // IsAPIModeProfile reports whether a profile authenticates via an
-// Anthropic-compatible gateway (ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY in
-// profile.env). OAuth profiles return false.
+// Anthropic-compatible gateway. Trip wire: any of ANTHROPIC_BASE_URL,
+// ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN being set. OAuth profiles
+// return false.
 func IsAPIModeProfile(p *Profile) bool {
 	if p == nil {
 		return false
 	}
-	for _, k := range []string{"ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY"} {
+	for _, k := range []string{"ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"} {
 		if v, ok := p.Env[k]; ok && v != "" {
 			return true
 		}
