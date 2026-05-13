@@ -54,6 +54,9 @@ func RunInstall(configPath string, sync, force bool) error {
 		if err := PatchAttribution(profileDir, profile.Attribution); err != nil {
 			return fmt.Errorf("profile %s attribution: %w", name, err)
 		}
+		if err := DenyUnsupportedTools(profileDir, profile); err != nil {
+			return fmt.Errorf("profile %s deny tools: %w", name, err)
+		}
 		if err := SyncMCPServers(profileDir); err != nil {
 			return fmt.Errorf("profile %s mcp sync: %w", name, err)
 		}

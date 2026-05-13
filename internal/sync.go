@@ -141,6 +141,92 @@ func PatchAttribution(profileDir string, attr *Attribution) error {
 	return nil
 }
 
+// Tools that depend on Anthropic-hosted server-side execution and are
+// silently unsupported by most Anthropic-compatible third-party gateways
+// (DeepSeek bridge, Z.ai, GLM, sub2api, etc.). When a profile authenticates
+// via ANTHROPIC_BASE_URL + ANTHROPIC_API_KEY we deny them up front so
+// Claude Code stops offering / invoking them in that profile.
+var apiModeDeniedTools = []string{"WebSearch", "WebFetch"}
+
+// IsAPIModeProfile reports whether a profile authenticates via an
+// Anthropic-compatible gateway (ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY in
+// profile.env). OAuth profiles return false.
+func IsAPIModeProfile(p *Profile) bool {
+	if p == nil {
+		return false
+	}
+	for _, k := range []string{"ANTHROPIC_BASE_URL", "ANTHROPIC_API_KEY"} {
+		if v, ok := p.Env[k]; ok && v != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// DenyUnsupportedTools patches the profile's settings.json so that
+// permissions.deny includes WebSearch and WebFetch when this is an
+// API-mode profile. No-op on OAuth profiles. Idempotent — does nothing if
+// the tools are already in the deny list.
+func DenyUnsupportedTools(profileDir string, profile *Profile) error {
+	if !IsAPIModeProfile(profile) {
+		return nil
+	}
+
+	settingsPath := filepath.Join(profileDir, "settings.json")
+	data, err := os.ReadFile(settingsPath)
+	if err != nil {
+		return nil // settings.json missing; nothing to patch
+	}
+
+	var settings map[string]any
+	if err := json.Unmarshal(data, &settings); err != nil {
+		return nil
+	}
+
+	perms, _ := settings["permissions"].(map[string]any)
+	if perms == nil {
+		perms = map[string]any{}
+	}
+	rawDeny, _ := perms["deny"].([]any)
+
+	denied := make(map[string]bool, len(rawDeny))
+	out := make([]any, 0, len(rawDeny)+len(apiModeDeniedTools))
+	for _, v := range rawDeny {
+		s, ok := v.(string)
+		if !ok || denied[s] {
+			continue
+		}
+		denied[s] = true
+		out = append(out, s)
+	}
+
+	added := false
+	for _, tool := range apiModeDeniedTools {
+		if denied[tool] {
+			continue
+		}
+		denied[tool] = true
+		out = append(out, tool)
+		added = true
+	}
+	if !added {
+		return nil
+	}
+
+	perms["deny"] = out
+	settings["permissions"] = perms
+
+	pretty, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(settingsPath, append(pretty, '\n'), 0o644); err != nil {
+		return err
+	}
+	fmt.Printf("  denied unsupported tools for API-mode profile: %s\n", strings.Join(apiModeDeniedTools, ", "))
+	return nil
+}
+
 type DivergedFile struct {
 	Profile  string
 	Filename string
