@@ -201,24 +201,33 @@ func renderConfigTOML(sourceDir, binDir string, profiles []onboardProfile) strin
 	b.WriteString(fmt.Sprintf("bin_dir = %q\n", binDir))
 
 	for _, p := range profiles {
-		b.WriteString(fmt.Sprintf("\n[profiles.%s]\n", p.Name))
-		if p.Description != "" {
-			b.WriteString(fmt.Sprintf("description = %q\n", p.Description))
-		}
-		if p.Model != "" {
-			b.WriteString(fmt.Sprintf("model = %q\n", p.Model))
-		}
-		needEnv := p.AuthMode == "api" || (p.TavilyEnabled && p.TavilyAPIKey != "")
-		if needEnv {
-			b.WriteString(fmt.Sprintf("\n[profiles.%s.env]\n", p.Name))
-		}
-		if p.AuthMode == "api" {
-			b.WriteString(fmt.Sprintf("ANTHROPIC_BASE_URL = %q\n", p.BaseURL))
-			b.WriteString(fmt.Sprintf("ANTHROPIC_API_KEY = %q\n", p.APIKey))
-		}
-		if p.TavilyEnabled && p.TavilyAPIKey != "" {
-			b.WriteString(fmt.Sprintf("TAVILY_API_KEY = %q\n", p.TavilyAPIKey))
-		}
+		b.WriteString(renderProfileTOMLBlock(p))
+	}
+	return b.String()
+}
+
+// renderProfileTOMLBlock renders a single profile section (with leading
+// blank line) — shared by onboard's full-file writer and `cpm add`'s
+// append-only writer so both keep the same TOML shape.
+func renderProfileTOMLBlock(p onboardProfile) string {
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("\n[profiles.%s]\n", p.Name))
+	if p.Description != "" {
+		b.WriteString(fmt.Sprintf("description = %q\n", p.Description))
+	}
+	if p.Model != "" {
+		b.WriteString(fmt.Sprintf("model = %q\n", p.Model))
+	}
+	needEnv := p.AuthMode == "api" || (p.TavilyEnabled && p.TavilyAPIKey != "")
+	if needEnv {
+		b.WriteString(fmt.Sprintf("\n[profiles.%s.env]\n", p.Name))
+	}
+	if p.AuthMode == "api" {
+		b.WriteString(fmt.Sprintf("ANTHROPIC_BASE_URL = %q\n", p.BaseURL))
+		b.WriteString(fmt.Sprintf("ANTHROPIC_API_KEY = %q\n", p.APIKey))
+	}
+	if p.TavilyEnabled && p.TavilyAPIKey != "" {
+		b.WriteString(fmt.Sprintf("TAVILY_API_KEY = %q\n", p.TavilyAPIKey))
 	}
 	return b.String()
 }

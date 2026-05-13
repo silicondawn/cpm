@@ -45,6 +45,7 @@ func main() {
 	root.AddCommand(useCmd())
 	root.AddCommand(whichCmd())
 	root.AddCommand(onboardCmd())
+	root.AddCommand(addCmd())
 	root.AddCommand(doctorCmd())
 	root.AddCommand(runCmd())
 	root.AddCommand(cloneCmd())
@@ -271,6 +272,24 @@ func onboardCmd() *cobra.Command {
 			"DeepSeek, Z.ai, GLM, sub2api, any custom gateway).",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return internal.RunOnboard(configPath, skipInstall)
+		},
+	}
+	cmd.Flags().BoolVar(&skipInstall, "no-install", false, "skip the automatic 'cpm install' step")
+	return cmd
+}
+
+func addCmd() *cobra.Command {
+	var skipInstall bool
+	cmd := &cobra.Command{
+		Use:   "add",
+		Short: "Add a new profile to an existing config (TUI) + install",
+		Long: "Interactively add a single profile to your existing config.toml,\n" +
+			"then automatically run 'cpm install' to create the profile dir and\n" +
+			"wrapper script. Use this when you've already run 'cpm onboard' and\n" +
+			"want to layer on another account or gateway.\n\n" +
+			"Pass --no-install to only update the config file.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return internal.RunAdd(configPath, skipInstall)
 		},
 	}
 	cmd.Flags().BoolVar(&skipInstall, "no-install", false, "skip the automatic 'cpm install' step")
