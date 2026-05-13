@@ -44,7 +44,7 @@ func main() {
 	root.AddCommand(direnvCmd())
 	root.AddCommand(useCmd())
 	root.AddCommand(whichCmd())
-	root.AddCommand(initCmd())
+	root.AddCommand(onboardCmd())
 	root.AddCommand(doctorCmd())
 	root.AddCommand(runCmd())
 	root.AddCommand(cloneCmd())
@@ -312,12 +312,17 @@ func whichCmd() *cobra.Command {
 	}
 }
 
-func initCmd() *cobra.Command {
+func onboardCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "init",
-		Short: "Interactive setup wizard for config.toml",
+		Use:     "onboard",
+		Aliases: []string{"init"},
+		Short:   "Interactive setup wizard (TUI)",
+		Long: "Walk through profile setup with a TUI form.\n" +
+			"Supports OAuth profiles (browser sign-in on first launch) and\n" +
+			"Anthropic-compatible API profiles (base URL + API key + model:\n" +
+			"DeepSeek, Z.ai, GLM, sub2api, any custom gateway).",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return internal.RunInit(configPath)
+			return internal.RunOnboard(configPath)
 		},
 	}
 }
