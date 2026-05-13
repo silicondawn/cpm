@@ -14,12 +14,70 @@ type onboardProfile struct {
 	Name          string
 	Description   string
 	AuthMode      string // "oauth" or "api"
+	Provider      string // "custom" | "deepseek-1m" | … — provider preset for api mode
 	BaseURL       string
 	APIKey        string
 	AuthKeyVar    string // "api_key" | "auth_token" | "both" — which env var(s) the gateway expects (api mode only)
 	Model         string
 	TavilyEnabled bool
 	TavilyAPIKey  string
+}
+
+// providerEnv is a single env var emitted by a provider preset. We use a
+// slice so the rendered TOML output is in a predictable order rather
+// than Go map iteration order.
+type providerEnv struct{ Key, Value string }
+
+// providerPreset bundles the curated defaults for a known Anthropic-
+// compatible gateway. Onboard auto-fills these so the user only types
+// their API key.
+type providerPreset struct {
+	Label      string // shown in the Provider select
+	BaseURL    string
+	AuthKeyVar string // "auth_token" / "api_key" / "both"
+	Model      string // becomes profile.model in config.toml
+	ExtraEnv   []providerEnv
+}
+
+// providerPresets is a registry of known gateways. Adding a new preset
+// here automatically wires it into the onboard form and renderer.
+var providerPresets = map[string]providerPreset{
+	"deepseek-1m": {
+		Label:      "DeepSeek (1M-context preset — official recommended)",
+		BaseURL:    "https://api.deepseek.com/anthropic",
+		AuthKeyVar: "auth_token",
+		Model:      "deepseek-v4-pro[1m]",
+		ExtraEnv: []providerEnv{
+			{"ANTHROPIC_MODEL", "deepseek-v4-pro[1m]"},
+			{"ANTHROPIC_DEFAULT_OPUS_MODEL", "deepseek-v4-pro[1m]"},
+			{"ANTHROPIC_DEFAULT_SONNET_MODEL", "deepseek-v4-pro[1m]"},
+			{"ANTHROPIC_DEFAULT_HAIKU_MODEL", "deepseek-v4-flash"},
+			{"CLAUDE_CODE_SUBAGENT_MODEL", "deepseek-v4-flash"},
+			{"CLAUDE_CODE_EFFORT_LEVEL", "max"},
+		},
+	},
+}
+
+// providerPresetOrder controls the order presets appear in the onboard
+// Select. "custom" stays in promptProfileForm so it can be inserted
+// first as the fallback option.
+var providerPresetOrder = []string{"deepseek-1m"}
+
+// applyProviderPreset overwrites BaseURL/AuthKeyVar/Model with the
+// preset's values after the form runs. Extra env vars are not stored on
+// the profile struct — the renderer reads them directly from the
+// registry by Provider key.
+func applyProviderPreset(p *onboardProfile) {
+	if p.AuthMode != "api" || p.Provider == "" || p.Provider == "custom" {
+		return
+	}
+	preset, ok := providerPresets[p.Provider]
+	if !ok {
+		return
+	}
+	p.BaseURL = preset.BaseURL
+	p.AuthKeyVar = preset.AuthKeyVar
+	p.Model = preset.Model
 }
 
 // RunOnboard runs the interactive TUI onboarding flow, writes config.toml,
@@ -105,7 +163,23 @@ func RunOnboard(configPath string, skipInstall bool) error {
 }
 
 func promptProfileForm() (onboardProfile, error) {
-	p := onboardProfile{AuthMode: "oauth", AuthKeyVar: "auth_token"}
+	// DeepSeek 1M-context preset is the default — first option in the
+	// select and pre-selected. Pressing enter through the form on a
+	// fresh profile auto-fills DS official-recommended config.
+	p := onboardProfile{AuthMode: "oauth", Provider: "deepseek-1m", AuthKeyVar: "auth_token"}
+
+	// Build the Provider select dynamically: presets in
+	// providerPresetOrder first (the first one is the default),
+	// "Custom" as the trailing fallback.
+	providerOptions := []huh.Option[string]{}
+	for _, key := range providerPresetOrder {
+		preset, ok := providerPresets[key]
+		if !ok {
+			continue
+		}
+		providerOptions = append(providerOptions, huh.NewOption(preset.Label, key))
+	}
+	providerOptions = append(providerOptions, huh.NewOption("Custom — enter base URL, auth var, and model manually", "custom"))
 
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -132,7 +206,19 @@ func promptProfileForm() (onboardProfile, error) {
 				).
 				Value(&p.AuthMode),
 		),
-		// API-mode-only group
+		// API-mode group: Provider select. The custom-only details
+		// (BASE_URL / AuthKeyVar / Model) live in their own group so
+		// huh's group-level hide can skip them for presets. The API
+		// key input has its own group too so it stays in the flow no
+		// matter which provider was picked.
+		huh.NewGroup(
+			huh.NewSelect[string]().
+				Title("Provider").
+				Description("Pick a preset to skip base-URL / auth-var / model entry. The\npreset also wires recommended ANTHROPIC_DEFAULT_* + CLAUDE_CODE_*\nenv vars. Pick 'Custom' for anything else.").
+				Options(providerOptions...).
+				Value(&p.Provider),
+		).WithHideFunc(func() bool { return p.AuthMode != "api" }),
+		// Custom-only details (only shown when Provider = custom).
 		huh.NewGroup(
 			huh.NewInput().
 				Title("ANTHROPIC_BASE_URL").
@@ -150,16 +236,19 @@ func promptProfileForm() (onboardProfile, error) {
 				).
 				Value(&p.AuthKeyVar),
 			huh.NewInput().
+				Title("Default model").
+				Description("Provider-specific name. Examples:\n  deepseek-v4-pro, glm-4.6, claude-sonnet-4-5, auto").
+				Value(&p.Model).
+				Validate(validateNonEmpty("model")),
+		).WithHideFunc(func() bool { return p.AuthMode != "api" || p.Provider != "custom" }),
+		// API key — always shown in api mode, regardless of provider.
+		huh.NewGroup(
+			huh.NewInput().
 				Title("API key / auth token").
 				Description("Stored in config.toml in plain text. Press enter when done.").
 				EchoMode(huh.EchoModePassword).
 				Value(&p.APIKey).
 				Validate(validateNonEmpty("API key")),
-			huh.NewInput().
-				Title("Default model").
-				Description("Provider-specific name. Examples:\n  deepseek-v4-pro, glm-4.6, claude-sonnet-4-5, auto").
-				Value(&p.Model).
-				Validate(validateNonEmpty("model")),
 		).WithHideFunc(func() bool { return p.AuthMode != "api" }),
 		// OAuth-mode-only group (optional model default)
 		huh.NewGroup(
@@ -202,6 +291,7 @@ func promptProfileForm() (onboardProfile, error) {
 	p.BaseURL = strings.TrimSpace(p.BaseURL)
 	p.Model = strings.TrimSpace(p.Model)
 	p.TavilyAPIKey = strings.TrimSpace(p.TavilyAPIKey)
+	applyProviderPreset(&p)
 	return p, nil
 }
 
@@ -242,6 +332,13 @@ func renderProfileTOMLBlock(p onboardProfile) string {
 			b.WriteString(fmt.Sprintf("ANTHROPIC_AUTH_TOKEN = %q\n", p.APIKey))
 		default: // "api_key" or unset (legacy)
 			b.WriteString(fmt.Sprintf("ANTHROPIC_API_KEY = %q\n", p.APIKey))
+		}
+		// Provider preset extra env vars (deterministic order from the
+		// preset definition's ExtraEnv slice).
+		if preset, ok := providerPresets[p.Provider]; ok {
+			for _, ev := range preset.ExtraEnv {
+				b.WriteString(fmt.Sprintf("%s = %q\n", ev.Key, ev.Value))
+			}
 		}
 	}
 	if p.TavilyEnabled && p.TavilyAPIKey != "" {
