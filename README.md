@@ -93,6 +93,29 @@ chmod +x ~/.local/bin/cpm
 go install github.com/jakubkontra/cpm@latest
 ```
 
+### Windows (PowerShell 7+)
+
+```powershell
+scoop bucket add cpm https://github.com/silicondawn/scoop-cpm
+scoop install cpm
+
+# Or download cpm_windows_amd64.exe from Releases:
+#   https://github.com/silicondawn/cpm/releases/latest
+# and drop it somewhere on PATH (e.g. $env:LOCALAPPDATA\cpm\bin).
+
+cpm init             # interactive setup
+cpm install          # creates claude-<name>.cmd + claude-<name>.ps1 wrappers
+claude-personal      # works just like on macOS/Linux
+
+# Auto-switch hook — add to $PROFILE:
+Invoke-Expression (& cpm hook | Out-String)
+```
+
+Notes:
+- Requires **PowerShell 7+** (`pwsh`). Windows PowerShell 5.1 is not supported. Install via `winget install Microsoft.PowerShell`.
+- Profile-shared directories use junctions (no admin needed). For the rare cross-volume case, enable **Developer Mode** in Windows Settings.
+- `cpm.exe` self-upgrade uses a rename-old / rename-new trick — no admin needed.
+
 ## Quick start
 
 ```bash
@@ -312,9 +335,9 @@ brew upgrade cpm
 
 ## Requirements
 
-- macOS or Linux
+- macOS, Linux, or Windows 10/11 (PowerShell 7+ for the Windows version — Windows PowerShell 5.1 not supported)
 - Claude Code installed and on PATH
-- `~/.local/bin` on PATH (or configure `bin_dir`)
+- `~/.local/bin` (Unix) or `%LOCALAPPDATA%\cpm\bin` (Windows) on PATH (or configure `bin_dir`)
 
 ## License
 

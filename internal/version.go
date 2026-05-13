@@ -76,6 +76,9 @@ func Upgrade(binDir string) error {
 
 	// Find matching asset
 	assetName := fmt.Sprintf("cpm_%s_%s", runtime.GOOS, runtime.GOARCH)
+	if runtime.GOOS == "windows" {
+		assetName += ".exe"
+	}
 	var downloadURL string
 	for _, asset := range release.Assets {
 		if strings.Contains(asset.Name, assetName) && !strings.HasSuffix(asset.Name, ".sha256") {
@@ -120,9 +123,13 @@ func Upgrade(binDir string) error {
 		return fmt.Errorf("cannot set permissions: %w", err)
 	}
 
-	// Replace current binary
-	targetPath := filepath.Join(binDir, "cpm")
-	if err := os.Rename(tmpPath, targetPath); err != nil {
+	// Replace current binary (platform-specific atomic rename)
+	targetName := "cpm"
+	if runtime.GOOS == "windows" {
+		targetName = "cpm.exe"
+	}
+	targetPath := filepath.Join(binDir, targetName)
+	if err := replaceBinary(tmpPath, targetPath); err != nil {
 		os.Remove(tmpPath)
 		return fmt.Errorf("cannot replace binary: %w", err)
 	}

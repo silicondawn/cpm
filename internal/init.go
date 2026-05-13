@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -33,11 +34,12 @@ func RunInit(configPath string) error {
 	}
 
 	// Bin dir
-	fmt.Print("Bin directory [~/.local/bin]: ")
+	defaultBin := defaultBinDir()
+	fmt.Printf("Bin directory [%s]: ", defaultBin)
 	binDir, _ := reader.ReadString('\n')
 	binDir = strings.TrimSpace(binDir)
 	if binDir == "" {
-		binDir = "~/.local/bin"
+		binDir = defaultBin
 	}
 
 	// Profiles
@@ -87,8 +89,22 @@ func RunInit(configPath string) error {
 
 	fmt.Printf("\nConfig written to %s\n", configPath)
 	fmt.Println("Run 'cpm install' to create profiles and wrapper scripts.")
+	printPostInitHints(binDir)
 
 	return nil
+}
+
+func printPostInitHints(binDir string) {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	fmt.Println("\n--- Windows setup hints ---")
+	fmt.Printf("1. Make sure %s is on your PATH:\n", binDir)
+	fmt.Printf("   [Environment]::SetEnvironmentVariable('Path', $env:Path + ';' + %q, 'User')\n", binDir)
+	fmt.Println("2. Add to your $PROFILE for auto-switch:")
+	fmt.Println(`   Invoke-Expression (& cpm hook | Out-String)`)
+	fmt.Println("3. (Rare) For cross-volume symlinks, enable Developer Mode in Windows Settings.")
+	fmt.Println("\nRun 'cpm doctor' anytime to verify.")
 }
 
 type profileEntry struct {

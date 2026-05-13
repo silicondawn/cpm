@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -64,15 +65,15 @@ func RunDoctor(cfg *Config, profilesBase string) []Check {
 			continue
 		}
 
-		// Check symlinks
+		// Check shared-directory links
 		for _, dir := range symlinkDirs {
 			link := filepath.Join(profileDir, dir)
-			target, err := os.Readlink(link)
+			target, err := resolveLinkTarget(link)
 			if err != nil {
-				continue // Not a symlink or doesn't exist
+				continue // Not a link or doesn't exist
 			}
 			if _, err := os.Stat(target); os.IsNotExist(err) {
-				checks = append(checks, Check{fmt.Sprintf("profile/%s/%s", name, dir), "error", fmt.Sprintf("broken symlink -> %s", target)})
+				checks = append(checks, Check{fmt.Sprintf("profile/%s/%s", name, dir), "error", fmt.Sprintf("broken link -> %s", target)})
 			}
 		}
 
@@ -90,12 +91,30 @@ func RunDoctor(cfg *Config, profilesBase string) []Check {
 			}
 		}
 
-		// Check wrapper script
-		scriptPath := filepath.Join(cfg.BinDir, "claude-"+name)
-		if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-			checks = append(checks, Check{fmt.Sprintf("profile/%s/wrapper", name), "warn", "wrapper script missing (run cpm install)"})
+		// Check wrapper script(s) — Unix has 1 file; Windows has .cmd + .ps1
+		expected := wrapperFilenames(name)
+		var missing []string
+		var present []string
+		for _, fn := range expected {
+			p := filepath.Join(cfg.BinDir, fn)
+			if _, err := os.Stat(p); os.IsNotExist(err) {
+				missing = append(missing, fn)
+			} else {
+				present = append(present, p)
+			}
+		}
+		if len(missing) > 0 {
+			checks = append(checks, Check{
+				fmt.Sprintf("profile/%s/wrapper", name),
+				"warn",
+				fmt.Sprintf("missing: %s (run cpm install)", strings.Join(missing, ", ")),
+			})
 		} else {
-			checks = append(checks, Check{fmt.Sprintf("profile/%s/wrapper", name), "ok", scriptPath})
+			checks = append(checks, Check{
+				fmt.Sprintf("profile/%s/wrapper", name),
+				"ok",
+				strings.Join(present, ", "),
+			})
 		}
 	}
 

@@ -56,7 +56,7 @@ func LoadConfig(path string) (*Config, error) {
 		cfg.SourceDir = "~/.claude"
 	}
 	if cfg.BinDir == "" {
-		cfg.BinDir = "~/.local/bin"
+		cfg.BinDir = defaultBinDir()
 	}
 	cfg.SourceDir = ExpandPath(cfg.SourceDir)
 	cfg.BinDir = ExpandPath(cfg.BinDir)
@@ -88,7 +88,7 @@ func LoadCloudConfig(path string) (*Config, error) {
 		// Return a default config if no config file exists
 		return &Config{
 			SourceDir: ExpandPath("~/.claude"),
-			BinDir:    ExpandPath("~/.local/bin"),
+			BinDir:    defaultBinDir(),
 		}, nil
 	}
 
@@ -101,7 +101,7 @@ func LoadCloudConfig(path string) (*Config, error) {
 		cfg.SourceDir = "~/.claude"
 	}
 	if cfg.BinDir == "" {
-		cfg.BinDir = "~/.local/bin"
+		cfg.BinDir = defaultBinDir()
 	}
 	cfg.SourceDir = ExpandPath(cfg.SourceDir)
 	cfg.BinDir = ExpandPath(cfg.BinDir)

@@ -56,9 +56,9 @@ func SetupProfile(name string, profileDir, sourceDir string, forceSync bool) err
 			continue
 		}
 
-		linkTarget, err := os.Readlink(dst)
+		linkTarget, err := resolveLinkTarget(dst)
 		if err == nil {
-			// Existing symlink — check if target matches
+			// Existing link — check if target matches
 			absSrc, _ := filepath.Abs(src)
 			absLink, _ := filepath.Abs(linkTarget)
 			if absSrc == absLink {
@@ -71,10 +71,10 @@ func SetupProfile(name string, profileDir, sourceDir string, forceSync bool) err
 			continue
 		}
 
-		if err := os.Symlink(src, dst); err != nil {
-			return fmt.Errorf("cannot symlink %s: %w", dirname, err)
+		if err := linkShared(src, dst); err != nil {
+			return fmt.Errorf("cannot link %s: %w", dirname, err)
 		}
-		fmt.Printf("  symlinked %s/ -> %s\n", dirname, src)
+		fmt.Printf("  linked %s/ -> %s\n", dirname, src)
 	}
 
 	return nil
