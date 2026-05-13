@@ -10,24 +10,21 @@ builds:
       - windows
     goarch:
       - amd64
-      - arm64
-    ignore:
-      - goos: windows
-        goarch: arm64
     ldflags:
       - -s -w
       - -X github.com/jakubkontra/cpm/internal.Version={{.Version}}
       - -X github.com/jakubkontra/cpm/internal.Commit={{.ShortCommit}}
 
 archives:
-  - format: binary
-    # goreleaser auto-appends .exe on windows for format: binary, so we
-    # do NOT add it ourselves (would produce cpm_windows_amd64.exe.exe)
+  - format: tar.gz
     name_template: "cpm_{{ .Os }}_{{ .Arch }}"
-    # Windows needs a zip archive (scoop publisher requires it).
+    # Windows: zip (scoop publisher requires it, and Windows users expect zip).
     format_overrides:
       - goos: windows
         format: zip
+    files:
+      - LICENSE
+      - README.md
 
 checksum:
   name_template: "checksums.txt"
